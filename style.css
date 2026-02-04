@@ -1,0 +1,198 @@
+/* การจัดเลย์เอาต์แถว */
+.roadmap-header, .roadmap-row {
+    display: flex;
+    padding: 15px 10px;
+    align-items: center;
+    transition: background 0.3s;
+}
+
+/* หัวตารางให้ตัวหนาและมีสีจางๆ */
+.roadmap-header {
+    font-weight: bold;
+    color: #666;
+    border-bottom: 2px solid #f0f0f0; /* เส้นจางๆ ใต้หัวข้อ */
+}
+
+/* แถวข้อมูล: ใช้เส้นใต้บางๆ แทนตารางเต็มรูปแบบ */
+.roadmap-row {
+    border-bottom: 1px solid #f9f9f9;
+}
+
+/* เอฟเฟกต์เมื่อเอาเมาส์ไปชี้ ให้ดูมีมิติ */
+.roadmap-row:hover {
+    background-color: #fcfcfc;
+}
+
+/* กำหนดความกว้างของแต่ละคอลัมน์ */
+.col-task { flex: 2; }      /* ชื่อขั้นตอนกว้างสุด */
+.col-employee { flex: 1; text-align: center; }
+.col-duration { flex: 1; text-align: center; } 
+.col-status { flex: 1; text-align: right; }
+
+/* ตกแต่งป้ายสถานะ */
+.badge {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* กำหนดสีแยกตามคลาส */
+.success { 
+    background-color: #e6f7ed; 
+    color: #2ecc71; 
+} /* เขียว */
+
+.processing { 
+    background-color: #e3f2fd; 
+    color: #3498db; 
+} /* ฟ้า */
+
+.delayed { 
+    background-color: #fdeaea; 
+    color: #e74c3c; 
+} /* แดง */
+
+.default { 
+    background-color: #f5f5f5; 
+    color: #95a5a6; 
+} /* เทา */
+
+/* ทำให้กรอบเล็กๆ (sub-box) ที่เราคุยกันไว้ดูสวยขึ้น */
+.sub-box {
+    padding: 20px;
+}
+.container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    width: 90%; /* ใช้พื้นที่ 90% ของหน้าจอ */
+    max-width: 1200px; /* จำกัดความกว้างสูงสุดไม่เกิน 1200px */
+}
+section {
+    display: flex;
+    justify-content: center;
+    margin: 30px;
+}
+.card {
+    background: white;
+    border-radius: 15px;       /* ขอบมนสวยๆ */
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08); /* เงาฟุ้งๆ */
+    transition: transform 0.3s; /* เวลาเมาส์ชี้ให้มันขยับนุ่มๆ */
+    border: 1px solid #f0f0f0;  /* เส้นขอบจางๆ */
+    margin: 10px;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-5px); /* เมาส์ชี้แล้วการ์ดลอยขึ้น */
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+.log-entry {
+    display: flex;
+    padding: 30px 0;
+    border-bottom: 1px solid #eee; /* เส้นคั่นบางๆ ระหว่างบันทึก */
+}
+
+.log-date {
+    flex: 0 0 100px; /* ล็อกความกว้างของวันที่ไว้ที่ 100px */
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.log-body {
+    flex: 1;
+    padding-left: 20px;
+}
+
+.log-tags {
+    margin-bottom: 10px;
+}
+
+/* ปรับแต่ง Badge (ขั้นตอนทำงาน และ ผู้รับผิดชอบ) */
+.badge-step, .badge-staff {
+    background: #e0e0e0;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-right: 10px;
+    display: inline-flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+/* จัดการรูปภาพให้เรียงกันเหมือนในตัวอย่างเว็บ */
+.log-images {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.log-images img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+/* จัดการกล่องเก็บรูป */
+.log-images-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* สไตล์ภาพจิ๋ว */
+.log-images-grid img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover; /* ตัดรูปให้พอดีกล่องสี่เหลี่ยม */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    border: 1px solid #ddd;
+}
+
+.log-images-grid img:hover {
+    transform: scale(1.05); /* ขยายเล็กน้อยตอนเอาเมาส์วาง */
+    filter: brightness(0.9);
+}
+
+/* สไตล์สำหรับกล่องภาพขยาย (Modal) */
+.modal {
+    display: none; /* ปิดไว้ก่อน */
+    position: fixed;
+    z-index: 1000;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.9);
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 5px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+.header-content {
+    padding: 30px;
+    text-align: center;
+    color: #ffffff;
+    font-size: 18px;
+}
+body {
+    background-color: #263238;
+    color: rgb(0, 0, 0);
+    font-family:'Noto Sans Thai', sans-serif;
+    -webkit-font-smoothing: antialiased; /* ช่วยให้ตัวหนังสือคมชัดขึ้นบน Mac/iOS */
+    -moz-osx-font-smoothing: grayscale;
+}
