@@ -196,3 +196,65 @@ body {
     -webkit-font-smoothing: antialiased; /* ช่วยให้ตัวหนังสือคมชัดขึ้นบน Mac/iOS */
     -moz-osx-font-smoothing: grayscale;
 }
+
+
+.prev {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    padding: 20px;
+    font-size: 30px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: 0.3s;
+    position: absolute;
+    left: 10px;
+    top: auto;
+    transform: translateY(-50%);
+}
+.next {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    padding: 20px;
+    font-size: 30px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: 0.3s;
+    position: absolute;
+    right: 10px;
+    top: auto;
+    transform: translateY(-50%);
+}
+
+.prev:hover, .next:hover {
+    background-color: rgba(0,0,0,0.8);
+}
+.modal-content-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 90%;
+    height: 80%;
+}
+#modalImg, #modalVideo {
+    max-width: 80%;
+    max-height: 100%;
+    margin: 0 20px;
+}
+.close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #fff;
+    font-size: 50px; /* ขยายใหญ่ให้กดง่ายในมือถือ */
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 9999; /* มั่นใจว่าอยู่หน้าสุด */
+    line-height: 1;
+}
+
+.close:hover {
+    color: #ff4d4d; /* เปลี่ยนเป็นสีแดงเวลาเอาเมาส์วางเพื่อให้รู้ว่าคือปุ่มปิด */
+}

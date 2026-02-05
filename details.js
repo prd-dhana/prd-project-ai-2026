@@ -1,4 +1,6 @@
 const urlPage2 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0YgI2aCwhv3X9Xnr3mHGTrwuecgUSOSCdPe386FTRibXNYW-Cb5piYnlxlTd0tcIkp_m3PXaUMWLj/pub?gid=139768779&single=true&output=csv';
+let currentImageIndex = 0; // เก็บว่าตอนนี้ดูรูปที่เท่าไหร่
+let allImages = [];        // เก็บรายการลิงก์รูปทั้งหมดในหน้านี้
 
 async function initDetailsPage() {
     console.log("เริ่มทำงาน: initDetailsPage"); // เช็คว่าสคริปต์เริ่มวิ่งไหม
@@ -69,24 +71,27 @@ async function initDetailsPage() {
 
         if (logContainer) {
             logContainer.innerHTML = htmlContent || "<p style='text-align:center; color:#999; padding:20px;'>ไม่พบข้อมูลที่ตรงกับหัวข้อนี้</p>";
+            const imgs = logContainer.querySelectorAll('img');
+            allImages = Array.from(imgs).map(img => img.src);
             logContainer.onclick = function(e) {
-                if (e.target.tagName === 'IMG') {
                     const modal = document.getElementById('imageModal');
                     const modalImg = document.getElementById('modalImg');
                     const modalVideo = document.getElementById('modalVideo');
-                    if (modal && modalImg) {
-                        modal.style.display = "flex";
-                        modalImg.style.display = "block";
-                        modalVideo.style.display = "none";
-                        modalImg.src = e.target.src;
-                        modalVideo.src = ""; // ล้างค่าเดิมของวิดีโอ
+                if (e.target.tagName === 'IMG') {
+                    currentImageIndex = allImages.indexOf(e.target.src);
+                if (modal && modalImg) {
+                    modal.style.display = "flex";
+                    modalImg.style.display = "block";
+                    modalVideo.style.display = "none";
+                    modalImg.src = e.target.src;
+                    modalVideo.src = ""; // ล้างค่าเดิมของวิดีโอ
                     }
-                    else if (e.target.tagName === 'IFRAME') {
+                else if (e.target.tagName === 'IFRAME') {
                     // กรณีเป็นวิดีโอ (YouTube)
-                        modal.style.display = "flex";
-                        modalVideo.style.display = "block";
-                        modalImg.style.display = "none";
-                        modalVideo.src = e.target.src; // ดึงลิงก์จาก iframe จิ๋วมาใส่ในอันใหญ่
+                    modal.style.display = "flex";
+                    modalVideo.style.display = "block";
+                    modalImg.style.display = "none";
+                    modalVideo.src = e.target.src; // ดึงลิงก์จาก iframe จิ๋วมาใส่ในอันใหญ่
                     }
                 }
             };
@@ -97,7 +102,43 @@ async function initDetailsPage() {
         if (logContainer) logContainer.innerHTML = "เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Sheets";
     }
 }
+// ฟังก์ชันปิด Modal และเคลียร์ค่า
+function closeModal() {
+    const modal = document.getElementById('imageModal');
+    const modalVideo = document.getElementById('modalVideo');
+    const modalImg = document.getElementById('modalImg');
+    
+    if (modal) 
+        modal.style.display = "none";
+    if (modalImg) modalImg.src = "";
+    if (modalVideo) {
+        modalVideo.src = ""; // หยุดวิดีโอเมื่อปิด
+        modalVideo.style.display = "none";
+    }
+    if (modalImg) modalImg.style.display = "none";
+}
 
+// ฟังก์ชันเปลี่ยนรูป
+function changeImage(n) {
+    if (allImages.length === 0) return;
+
+    currentImageIndex += n;
+    
+    // วนลูปรูปภาพ
+    if (currentImageIndex >= allImages.length) currentImageIndex = 0;
+    if (currentImageIndex < 0) currentImageIndex = allImages.length - 1;
+    
+    const modalImg = document.getElementById('modalImg');
+    const modalVideo = document.getElementById('modalVideo');
+    
+    // เมื่อกดเลื่อนรูป ให้ซ่อนวิดีโอและโชว์รูปภาพเสมอ
+    if (modalImg && modalVideo) {
+        modalVideo.style.display = "none";
+        modalVideo.src = ""; 
+        modalImg.style.display = "block";
+        modalImg.src = allImages[currentImageIndex];
+    }
+}
 
 
 // มั่นใจว่า DOM โหลดเสร็จก่อนค่อยเริ่มทำงาน
