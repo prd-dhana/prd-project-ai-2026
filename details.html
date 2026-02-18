@@ -29,15 +29,17 @@
     </main>
     <div id="imageModal" class="modal">
         <span class="close" onclick="closeModal()">&times;</span>
-        
-            <div class="modal-content-wrapper">
-                <button class="prev" onclick="changeImage(-1)">&#10094;</button>
-            
-                <img id="modalImg" src="" style="display:none;">
-            
-                <iframe id="modalVideo" src="" frameborder="0" allowfullscreen style="display:none;"></iframe>
-            
-                <button class="next" onclick="changeImage(1)">&#10095;</button>
+            <div class="zoom-controls">
+                <button onclick="zoom(0.5)">+</button>
+                <button onclick="zoom(-0.5)">-</button>
+                <button onclick="resetZoom()">Reset</button>
+            </div>
+
+            <div class="modal-content-wrapper" style="overflow: hidden;"> <button class="prev" onclick="changeImage(-1)">&#10094;</button>
+                <div class="img-container">
+                    <img id="modalImg" src="" draggable="false"> 
+                </div>
+                    <button class="next" onclick="changeImage(1)">&#10095;</button>
             </div>
         </div>
 </body>

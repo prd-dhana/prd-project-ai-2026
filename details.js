@@ -1,14 +1,17 @@
 const urlPage2 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0YgI2aCwhv3X9Xnr3mHGTrwuecgUSOSCdPe386FTRibXNYW-Cb5piYnlxlTd0tcIkp_m3PXaUMWLj/pub?gid=139768779&single=true&output=csv';
-let currentImageIndex = 0; // เก็บว่าตอนนี้ดูรูปที่เท่าไหร่
-let allImages = [];        // เก็บรายการลิงก์รูปทั้งหมดในหน้านี้
+
+// --- ตัวแปร Global ---
+let currentImageIndex = 0;
+let currentGallery = []; 
+let scale = 1;
+let isDragging = false;
+let startX, startY, translateX = 0, translateY = 0;
 
 async function initDetailsPage() {
-    console.log("เริ่มทำงาน: initDetailsPage"); // เช็คว่าสคริปต์เริ่มวิ่งไหม
+    console.log("เริ่มทำงาน: initDetailsPage");
     
     const urlParams = new URLSearchParams(window.location.search);
     const targetTopic = urlParams.get('topic');
-    console.log("หัวข้อที่ดึงจาก URL:", targetTopic);
-
     const titleElement = document.getElementById('display-topic-title');
     const logContainer = document.getElementById('log-container');
 
@@ -22,27 +25,20 @@ async function initDetailsPage() {
     try {
         const response = await fetch(urlPage2);
         const data = await response.text();
-        // ปรับการตัดบรรทัดให้รองรับทั้ง \n และ \r\n
         const rows = data.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        console.log("จำนวนแถวที่ดึงได้จาก Sheet:", rows.length);
         
         let htmlContent = "";
         const cleanTarget = targetTopic.replace(/\s/g, '');
-
         const dataRows = rows.slice(1).reverse();
 
-        dataRows.forEach((row, index) => {
+        dataRows.forEach((row) => {
             const columns = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             if (columns.length < 5) return;
 
             const topicInSheet = columns[1] ? columns[1].replace(/"/g, '').trim() : "";
             const cleanSheetTopic = topicInSheet.replace(/\s/g, '');
 
-            // บรรทัดนี้จะช่วยให้เห็นใน Console ว่ามันเทียบชื่ออะไรกันอยู่
-            if (index < 5) console.log(`กำลังเทียบ: [${cleanSheetTopic}] กับ [${cleanTarget}]`);
-
             if (cleanSheetTopic === cleanTarget) {
-                console.log("เจอข้อมูลที่ตรงกันแล้ว!");
                 const dateRaw = columns[0].replace(/"/g, '').trim();
                 const staff = columns[2].replace(/"/g, '').trim();
                 const step = columns[3].replace(/"/g, '').trim();
@@ -65,33 +61,31 @@ async function initDetailsPage() {
                         </div>
                     </div>
                 `;
-                
             }
         });
 
         if (logContainer) {
             logContainer.innerHTML = htmlContent || "<p style='text-align:center; color:#999; padding:20px;'>ไม่พบข้อมูลที่ตรงกับหัวข้อนี้</p>";
-            const imgs = logContainer.querySelectorAll('img');
-            allImages = Array.from(imgs).map(img => img.src);
+            
+            // ตั้งค่า Event ลากรูปหลังจาก HTML โหลดเสร็จแล้ว
+            setupZoomAndDrag();
+
             logContainer.onclick = function(e) {
-                    const modal = document.getElementById('imageModal');
-                    const modalImg = document.getElementById('modalImg');
-                    const modalVideo = document.getElementById('modalVideo');
                 if (e.target.tagName === 'IMG') {
-                    currentImageIndex = allImages.indexOf(e.target.src);
-                if (modal && modalImg) {
-                    modal.style.display = "flex";
-                    modalImg.style.display = "block";
-                    modalVideo.style.display = "none";
-                    modalImg.src = e.target.src;
-                    modalVideo.src = ""; // ล้างค่าเดิมของวิดีโอ
-                    }
-                else if (e.target.tagName === 'IFRAME') {
-                    // กรณีเป็นวิดีโอ (YouTube)
-                    modal.style.display = "flex";
-                    modalVideo.style.display = "block";
-                    modalImg.style.display = "none";
-                    modalVideo.src = e.target.src; // ดึงลิงก์จาก iframe จิ๋วมาใส่ในอันใหญ่
+                    const parentEntry = e.target.closest('.log-entry'); 
+                    const imgsInEntry = parentEntry.querySelectorAll('img');
+                    currentGallery = Array.from(imgsInEntry).map(img => img.src);
+                    currentImageIndex = currentGallery.indexOf(e.target.src);
+                    openModal(currentImageIndex);
+                } else if (e.target.tagName === 'IFRAME') {
+                    const modal = document.getElementById('imageModal');
+                    const modalVideo = document.getElementById('modalVideo');
+                    const modalImg = document.getElementById('modalImg');
+                    if (modal && modalVideo) {
+                        modal.style.display = "flex";
+                        modalVideo.style.display = "block";
+                        modalImg.style.display = "none";
+                        modalVideo.src = e.target.src;
                     }
                 }
             };
@@ -99,47 +93,109 @@ async function initDetailsPage() {
 
     } catch (error) {
         console.error("เกิดข้อผิดพลาด:", error);
-        if (logContainer) logContainer.innerHTML = "เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Sheets";
     }
 }
-// ฟังก์ชันปิด Modal และเคลียร์ค่า
+
+// --- ฟังก์ชันจัดการ Modal ---
+
+function openModal(index) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    const modalVideo = document.getElementById('modalVideo');
+    
+    if (!modal || !modalImg) return;
+
+    currentImageIndex = index;
+    resetZoom(); 
+    
+    modal.style.display = "flex";
+    modalImg.style.display = "block";
+    if (modalVideo) {
+        modalVideo.style.display = "none";
+        modalVideo.src = "";
+    }
+    modalImg.src = currentGallery[currentImageIndex];
+    updateNavButtons();
+}
+
 function closeModal() {
     const modal = document.getElementById('imageModal');
     const modalVideo = document.getElementById('modalVideo');
-    const modalImg = document.getElementById('modalImg');
-    
-    if (modal) 
-        modal.style.display = "none";
-    if (modalImg) modalImg.src = "";
-    if (modalVideo) {
-        modalVideo.src = ""; // หยุดวิดีโอเมื่อปิด
-        modalVideo.style.display = "none";
-    }
-    if (modalImg) modalImg.style.display = "none";
+    if (modal) modal.style.display = "none";
+    if (modalVideo) modalVideo.src = "";
 }
 
-// ฟังก์ชันเปลี่ยนรูป
 function changeImage(n) {
-    if (allImages.length === 0) return;
-
-    currentImageIndex += n;
-    
-    // วนลูปรูปภาพ
-    if (currentImageIndex >= allImages.length) currentImageIndex = 0;
-    if (currentImageIndex < 0) currentImageIndex = allImages.length - 1;
-    
-    const modalImg = document.getElementById('modalImg');
-    const modalVideo = document.getElementById('modalVideo');
-    
-    // เมื่อกดเลื่อนรูป ให้ซ่อนวิดีโอและโชว์รูปภาพเสมอ
-    if (modalImg && modalVideo) {
-        modalVideo.style.display = "none";
-        modalVideo.src = ""; 
-        modalImg.style.display = "block";
-        modalImg.src = allImages[currentImageIndex];
+    const newIndex = currentImageIndex + n;
+    if (newIndex >= 0 && newIndex < currentGallery.length) {
+        currentImageIndex = newIndex;
+        resetZoom();
+        document.getElementById('modalImg').src = currentGallery[currentImageIndex];
+        updateNavButtons();
     }
 }
 
+function updateNavButtons() {
+    const prevBtn = document.querySelector('.prev');
+    const nextBtn = document.querySelector('.next');
+    if (prevBtn) prevBtn.style.visibility = (currentImageIndex === 0) ? "hidden" : "visible";
+    if (nextBtn) nextBtn.style.visibility = (currentImageIndex === currentGallery.length - 1) ? "hidden" : "visible";
+}
 
-// มั่นใจว่า DOM โหลดเสร็จก่อนค่อยเริ่มทำงาน
+// --- ระบบ Zoom & Drag ---
+
+function setupZoomAndDrag() {
+    const modalImg = document.getElementById('modalImg');
+    if (!modalImg) return;
+
+    modalImg.onmousedown = (e) => {
+        if (scale > 1) {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            modalImg.style.cursor = "grabbing";
+            e.preventDefault();
+        }
+    };
+
+    window.onmousemove = (e) => {
+        if (!isDragging) return;
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        applyTransform();
+    };
+
+    window.onmouseup = () => {
+        isDragging = false;
+        if(modalImg) modalImg.style.cursor = scale > 1 ? "grab" : "default";
+    };
+}
+
+function zoom(amount) {
+    scale += amount;
+    if (scale < 1) scale = 1;
+    applyTransform();
+}
+
+function resetZoom() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    applyTransform();
+}
+
+function applyTransform() {
+    const img = document.getElementById('modalImg');
+    if (img) {
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        img.style.cursor = scale > 1 ? "grab" : "default";
+    }
+}
+
+// คลิกพื้นที่ว่างเพื่อปิด
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target === modal) closeModal();
+};
+
 window.onload = initDetailsPage;
