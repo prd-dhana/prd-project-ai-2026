@@ -43,7 +43,10 @@ async function initDetailsPage() {
                 const staff = columns[2].replace(/"/g, '').trim();
                 const step = columns[3].replace(/"/g, '').trim();
                 const detail = columns[4].replace(/"/g, '').trim();
-                const imageHtml = columns[5] ? columns[5].replace(/"/g, '') : "";
+
+                let imageHtmlRaw = columns[5] ? columns[5].replace(/"/g, '') : "";
+                // จัดระเบียบ Iframe ให้มี Class media-thumb ครอบ
+                let imageHtml = imageHtmlRaw.replace(/<iframe/g, '<div class="media-thumb"><iframe').replace(/<\/iframe>/g, '</iframe></div>');
 
                 const dateParts = dateRaw.split('/');
                 const displayDate = dateParts.length >= 2 ? `${parseInt(dateParts[0])}/${parseInt(dateParts[1])}` : dateRaw;
@@ -66,29 +69,49 @@ async function initDetailsPage() {
 
         if (logContainer) {
             logContainer.innerHTML = htmlContent || "<p style='text-align:center; color:#999; padding:20px;'>ไม่พบข้อมูลที่ตรงกับหัวข้อนี้</p>";
-            
-            // ตั้งค่า Event ลากรูปหลังจาก HTML โหลดเสร็จแล้ว
             setupZoomAndDrag();
 
             logContainer.onclick = function(e) {
-                if (e.target.tagName === 'IMG') {
-                    const parentEntry = e.target.closest('.log-entry'); 
-                    const imgsInEntry = parentEntry.querySelectorAll('img');
-                    currentGallery = Array.from(imgsInEntry).map(img => img.src);
-                    currentImageIndex = currentGallery.indexOf(e.target.src);
-                    openModal(currentImageIndex);
-                } else if (e.target.tagName === 'IFRAME') {
-                    const modal = document.getElementById('imageModal');
-                    const modalVideo = document.getElementById('modalVideo');
-                    const modalImg = document.getElementById('modalImg');
-                    if (modal && modalVideo) {
-                        modal.style.display = "flex";
-                        modalVideo.style.display = "block";
-                        modalImg.style.display = "none";
-                        modalVideo.src = e.target.src;
-                    }
-                }
-            };
+            // 1. หาว่าคลิกอยู่ในโพสต์ไหน
+            const parentEntry = e.target.closest('.log-entry');
+            if (!parentEntry) return;
+
+                // 2. สแกนหารูปและวิดีโอทั้งหมดในโพสต์นั้นเพื่อสร้าง Gallery ชั่วคราว
+                const allMedia = parentEntry.querySelectorAll('img, iframe');
+    
+                currentGallery = Array.from(allMedia).map(el => ({
+                type: el.tagName.toLowerCase(),
+                src: el.getAttribute('src')
+                }));
+
+            let clickedSrc = "";
+
+            // 3. ตรวจสอบว่าคลิกโดนอะไร
+            if (e.target.tagName === 'IMG') {
+                // กรณีคลิกโดนรูป
+                clickedSrc = e.target.getAttribute('src');
+            } else {
+                // กรณีคลิกโดนกรอบวิดีโอ (media-thumb)
+                const thumb = e.target.closest('.media-thumb');
+            if (thumb) {
+                const iframe = thumb.querySelector('iframe');
+                // *** จุดที่แก้: เปลี่ยน iframeInside เป็น iframe เฉยๆ ***
+            if (iframe) {
+                clickedSrc = iframe.getAttribute('src');
+            }
+        }
+    }
+
+    // 4. หา Index และเปิด Modal
+    currentImageIndex = currentGallery.findIndex(item => item.src === clickedSrc);
+    
+    console.log("Clicked Src:", clickedSrc); 
+    console.log("Index found:", currentImageIndex);
+
+    if (currentImageIndex !== -1) {
+        openModal(currentImageIndex);
+    }
+};
         }
 
     } catch (error) {
@@ -96,42 +119,60 @@ async function initDetailsPage() {
     }
 }
 
-// --- ฟังก์ชันจัดการ Modal ---
+// --- ฟังก์ชันแสดงสื่อใน Modal ---
+function displayMedia(index) {
+    const modalImg = document.getElementById('modalImg');
+    const modalVideo = document.getElementById('modalVideo');
+    const zoomButtons = document.getElementById('zoom-controls');
+    const media = currentGallery[index];
+
+    if (!media) return;
+
+    // ล้างค่าเก่าออกก่อนทุกครั้งเพื่อความชัวร์
+    modalImg.src = "";
+    if (modalVideo) modalVideo.src = "";
+
+    if (media.type === 'img') {
+        modalImg.style.display = "block";
+        modalVideo.style.display = "none";
+        modalImg.src = media.src;
+        if (zoomButtons) zoomButtons.style.display = "flex";
+        resetZoom();
+    } else {
+        // ส่วนของ Iframe (3D/Video)
+        modalImg.style.display = "none";
+        modalVideo.style.display = "block";
+        modalVideo.src = media.src; // ส่งลิงก์เข้า iframe
+        if (zoomButtons) zoomButtons.style.display = "none";
+    }
+    updateNavButtons();
+}
 
 function openModal(index) {
     const modal = document.getElementById('imageModal');
-    const modalImg = document.getElementById('modalImg');
-    const modalVideo = document.getElementById('modalVideo');
-    
-    if (!modal || !modalImg) return;
-
-    currentImageIndex = index;
-    resetZoom(); 
-    
+    if (!modal) return;
     modal.style.display = "flex";
-    modalImg.style.display = "block";
-    if (modalVideo) {
-        modalVideo.style.display = "none";
-        modalVideo.src = "";
-    }
-    modalImg.src = currentGallery[currentImageIndex];
-    updateNavButtons();
+    displayMedia(index);
 }
 
 function closeModal() {
     const modal = document.getElementById('imageModal');
     const modalVideo = document.getElementById('modalVideo');
+    const modalImg = document.getElementById('modalImg');
+    
     if (modal) modal.style.display = "none";
-    if (modalVideo) modalVideo.src = "";
+    if (modalImg) modalImg.src = "";
+    if (modalVideo) {
+        modalVideo.src = ""; 
+        modalVideo.style.display = "none";
+    }
 }
 
 function changeImage(n) {
     const newIndex = currentImageIndex + n;
     if (newIndex >= 0 && newIndex < currentGallery.length) {
         currentImageIndex = newIndex;
-        resetZoom();
-        document.getElementById('modalImg').src = currentGallery[currentImageIndex];
-        updateNavButtons();
+        displayMedia(currentImageIndex);
     }
 }
 
@@ -143,7 +184,6 @@ function updateNavButtons() {
 }
 
 // --- ระบบ Zoom & Drag ---
-
 function setupZoomAndDrag() {
     const modalImg = document.getElementById('modalImg');
     if (!modalImg) return;
@@ -171,19 +211,8 @@ function setupZoomAndDrag() {
     };
 }
 
-function zoom(amount) {
-    scale += amount;
-    if (scale < 1) scale = 1;
-    applyTransform();
-}
-
-function resetZoom() {
-    scale = 1;
-    translateX = 0;
-    translateY = 0;
-    applyTransform();
-}
-
+function zoom(amount) { scale += amount; if (scale < 1) scale = 1; applyTransform(); }
+function resetZoom() { scale = 1; translateX = 0; translateY = 0; applyTransform(); }
 function applyTransform() {
     const img = document.getElementById('modalImg');
     if (img) {
@@ -192,7 +221,6 @@ function applyTransform() {
     }
 }
 
-// คลิกพื้นที่ว่างเพื่อปิด
 window.onclick = function(event) {
     const modal = document.getElementById('imageModal');
     if (event.target === modal) closeModal();
